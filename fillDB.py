@@ -1,3 +1,4 @@
+#!/usr/bin/python3
 from nltk.corpus import stopwords
 from nltk.tokenize import word_tokenize
 from nltk.stem import PorterStemmer
@@ -13,6 +14,8 @@ import pandas as pd
 import pickle
 import re
 import math
+import sys
+
 
 #nltk.download('stopwords')
 #nltk.download('punkt')
@@ -24,7 +27,7 @@ alpha = 0.3
 
 folders = [x[0] for x in os.walk(str(os.getcwd())+'/'+title+'/')]
 folders[0] = folders[0][:len(folders[0])-1]
-print(folders)
+#print(folders)
 
 #######Collecting the file names and titles
 
@@ -44,12 +47,12 @@ for i in folders:
         file_name = file_name[2:]
         c = True
 
-    print(len(file_name), len(file_title))
+    #print(len(file_name), len(file_title))
 
     for j in range(len(file_name)):
         dataset.append((str(i) + "/" + str(file_name[j]), file_title[j]))
 
-print(len(dataset))
+#print("Length of dataset: ", len(dataset))
 
 N = len (dataset)
 
@@ -161,11 +164,11 @@ for i in DF:
 
 total_vocab_size = len(DF)
 
-print(total_vocab_size)
+#print("Total vocabulary size: ", total_vocab_size)
 
 total_vocab = [x for x in DF]
 
-print(total_vocab[:20])
+#print(total_vocab[:20])
 
 
 def doc_freq(word):
@@ -222,9 +225,9 @@ for i in range(N):
     doc += 1
 
 
-print(tf_idf[(0,"go")])
+#print(tf_idf[(0,"go")])
 
-print(tf_idf_title[(0,"go")])
+#print(tf_idf_title[(0,"go")])
 
 
 #Merging the TF-IDF according to weights
@@ -235,44 +238,7 @@ for i in tf_idf:
 for i in tf_idf_title:
     tf_idf[i] = tf_idf_title[i]
 
-print(len(tf_idf))
-
-
-#TF-IDF Matching Score Ranking
-
-def matching_score(k, query):
-    preprocessed_query = preprocess(query)
-    tokens = word_tokenize(str(preprocessed_query))
-
-    print("Matching Score")
-    print("\nQuery:", query)
-    print("")
-    print(tokens)
-
-    query_weights = {}
-
-    for key in tf_idf:
-
-        if key[1] in tokens:
-            try:
-                query_weights[key[0]] += tf_idf[key]
-            except:
-                query_weights[key[0]] = tf_idf[key]
-
-    query_weights = sorted(query_weights.items(), key=lambda x: x[1], reverse=True)
-
-    print("")
-
-    l = []
-
-    for i in query_weights[:10]:
-        l.append(i[0])
-
-    print(l)
-
-
-matching_score(10, "Without the drive of Rebeccah's insistence, Kate lost her momentum. She stood next a slatted oak bench, canisters still clutched, surveying")
-
+#print(len(tf_idf))
 
 
 #TF-IDF Cosine Similarity Ranking
@@ -312,6 +278,16 @@ def gen_vector(tokens):
     return Q
 
 
+def print_doc_custom(ids):
+    for id in ids:
+        tuple_ = dataset[id]
+        location = tuple_[0]
+        title = tuple_[1]
+        print(title)
+        #print(location)
+        print("")
+
+
 def cosine_similarity(k, query):
     print("Cosine Similarity")
     preprocessed_query = preprocess(query)
@@ -334,18 +310,17 @@ def cosine_similarity(k, query):
 
     print(out)
 
+    print("")
 
-#     for i in out:
-
-#         print(i, dataset[i][0])
-
-Q = cosine_similarity(10, "Without the drive of Rebeccah's insistence, Kate lost her momentum. She stood next a slatted oak bench, canisters still clutched, surveying")
+    print_doc_custom(out)
 
 
-print_doc(200)
+#Q = cosine_similarity(10, "Without the drive of Rebeccah's insistence, Kate lost her momentum. She stood next a slatted oak bench, canisters still clutched, surveying")
 
 
 
+#Q = cosine_similarity(int(sys.argv[1]), str(sys.argv[2]))
 
 
-print('me')
+
+print("Finished")
