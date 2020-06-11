@@ -1,47 +1,13 @@
 # Vectorising tf-idf
-import codecs
-import json
 import math
 import pickle
 from collections import Counter
+from typing import List
 
 import numpy as np
 from nltk.tokenize import word_tokenize
 
 import preprocessor
-
-D = None
-tf_idf = None
-DF = None
-total_vocab = None
-total_vocab_size = None
-dataset = None
-N = None
-
-
-def load_data():
-    with open("data.pkl", "rb") as open_file:
-        file_data = pickle.load(open_file)
-    global D, tf_idf, DF, total_vocab, total_vocab_size, dataset, N
-    D = np.array(file_data["D"])
-    tf_idf = preprocessor.unmap_keys(file_data["tf_idf"])
-    DF = file_data["DF"]
-    total_vocab = file_data["total_vocab"]
-    total_vocab_size = file_data["total_vocab_size"]
-    dataset = file_data["dataset"]
-    N = file_data["N"]
-
-
-load_data()
-
-
-def doc_freq(word):
-    c = 0
-    try:
-        c = DF[word]
-    except:
-        pass
-    return c
 
 
 # TF-IDF Cosine Similarity Ranking
@@ -50,59 +16,150 @@ def cosine_sim(a, b):
     return cos_sim
 
 
-def gen_vector(tokens):
-    Q = np.zeros((len(total_vocab)))
+class Runner(object):
+    D: any
+    DF: dict
 
-    counter = Counter(tokens)
-    words_count = len(tokens)
+    def __init__(self):
+        self.D = None
+        self.tf_idf = None
+        self.DF = None
+        self.total_vocab = None
+        self.total_vocab_size = None
+        self.dataset = None
+        self.N = None
+        self.alpha = 0.3
 
-    query_weights = {}
+    @classmethod
+    def initialize(cls):
+        res = cls()
+        with open("data.pkl", "rb") as open_file:
+            file_data = pickle.load(open_file)
+        res.D = np.array(file_data["D"])
+        res.tf_idf = preprocessor.unmap_keys(file_data["tf_idf"])
+        res.DF = file_data["DF"]
+        res.total_vocab = file_data["total_vocab"]
+        res.total_vocab_size = file_data["total_vocab_size"]
+        res.dataset = file_data["dataset"]
+        res.N = file_data["N"]
+        return res
 
-    for token in np.unique(tokens):
+    def gen_vector(self, tokens):
+        Q = np.zeros((len(self.total_vocab)))
 
-        tf = counter[token] / words_count
-        df = doc_freq(token)
-        idf = math.log((N + 1) / (df + 1))
+        counter = Counter(tokens)
+        words_count = len(tokens)
 
-        try:
-            ind = total_vocab.index(token)
-            Q[ind] = tf * idf
-        except:
-            pass
-    return Q
+        for token in np.unique(tokens):
 
+            tf = counter[token] / words_count
+            df = self.doc_frequency(token)
+            idf = math.log((self.N + 1) / (df + 1))
 
-def print_doc_custom(ids):
-    for id in ids:
-        tuple_ = dataset[id]
-        location = tuple_[0]
-        title = tuple_[1]
-        print(title)
-        # print(location)
-        print("")
+            try:
+                ind = self.total_vocab.index(token)
+                Q[ind] = tf * idf
+            except:
+                pass
+        return Q
 
+    def format_doc_custom(self, ids):
+        res = []
+        for uid in ids:
+            tuple_ = self.dataset[uid]
+            location = tuple_[0]
+            title = tuple_[1]
+            res.append({
+                "title": title,
+                "location": location
+            })
+        return res
 
-def cosine_similarity(k, query):
-    #print("Cosine Similarity")
-    preprocessed_query = preprocessor.preprocess(query)
-    tokens = word_tokenize(str(preprocessed_query))
+    def cosine_similarity(self, k, query):
+        preprocessed_query = preprocessor.preprocess(query)
+        tokens = word_tokenize(str(preprocessed_query))
 
-    #print("\nQuery:", query)
-    #print("")
-    #print(tokens)
+        d_cosines = []
 
-    d_cosines = []
+        query_vector = self.gen_vector(tokens)
+        for d in self.D:
+            d_cosines.append(cosine_sim(query_vector, d))
 
-    query_vector = gen_vector(tokens)
-    for d in D:
-        d_cosines.append(cosine_sim(query_vector, d))
+        out = np.array(d_cosines).argsort()[-k:][::-1]
 
-    out = np.array(d_cosines).argsort()[-k:][::-1]
+        return self.format_doc_custom(out)
 
-    #print("")
+    def doc_frequency(self, word: str):
+        return self.DF.get(word, 0)
 
-    #print(out)
+    def update_df(self, processed: List[str]):
+        df = {}
+        for token in processed:
+            try:
+                df[token].add(self.N)
+            except Exception as e:
+                df[token] = {self.N}
 
-    print("")
+        for i in df:
+            if i not in self.DF:
+                self.DF[i] = 0
+            self.DF[i] += 1
 
-    print_doc_custom(out)
+    def calculate_tf_idf(self, processed_title: str, processed_text: str):
+        tf_idf = {}
+        tokens = processed_text
+
+        counter = Counter(tokens + processed_title)
+        words_count = len(tokens + processed_title)
+
+        for token in np.unique(tokens):
+            tf = counter[token] / words_count
+            df = self.doc_frequency(token)
+            idf = np.log((self.N + 1) / (df + 1))
+
+            tf_idf[self.N, token] = tf * idf
+        return tf_idf
+
+    def reload_d(self):
+        self.D = np.zeros((self.N, self.total_vocab_size))
+        for i in self.tf_idf:
+            try:
+                ind = self.total_vocab.index(i[1])
+                self.D[i[0]][ind] = self.tf_idf[i]
+            except:
+                pass
+
+    def save_data(self):
+        file_data = {
+            "D": self.D.tolist(),
+            "tf_idf": preprocessor.remap_keys(self.tf_idf),
+            "DF": self.DF,
+            "total_vocab": self.total_vocab,
+            "total_vocab_size": self.total_vocab_size,
+            "dataset": self.dataset,
+            "N": self.N
+        }
+        with open("data.pkl", "wb") as open_file:
+            pickle.dump(file_data, open_file, protocol=pickle.HIGHEST_PROTOCOL)
+
+    def process_new_text(self, title: str, body: str):
+        self.dataset.append(("uploads/{}".format(title), title))
+        processed_title = preprocessor.process_text(title)
+        processed_body = preprocessor.process_text(body)
+        processed = []
+        processed.extend(processed_title)
+        processed.extend(processed_body)
+        self.update_df(processed)
+        self.N += 1
+        self.total_vocab_size = len(self.DF)
+        self.total_vocab = list(self.DF.keys())
+        tf_idf = self.calculate_tf_idf(processed_title, processed_body)
+        tf_idf_title = self.calculate_tf_idf(processed_body, processed_title)
+        for i in tf_idf:
+            tf_idf[i] *= self.alpha
+        for i in tf_idf_title:
+            tf_idf[i] = tf_idf_title[i]
+        for i in tf_idf:
+            self.tf_idf[i] = tf_idf[i]
+        self.reload_d()
+        self.save_data()
