@@ -1,1 +1,13 @@
-pymongo==3.10.1
+click==7.1.2
+docopt==0.6.2
+Flask==1.1.2
+itsdangerous==1.1.0
+Jinja2==2.11.2
+joblib==0.15.1
+MarkupSafe==1.1.1
+nltk==3.5
+num2words==0.5.10
+numpy==1.18.4
+regex==2020.5.14
+tqdm==4.46.0
+Werkzeug==1.0.1

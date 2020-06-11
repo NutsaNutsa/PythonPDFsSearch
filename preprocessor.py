@@ -70,6 +70,11 @@ def preprocess(data):
     return data
 
 
+def process_text(text: str):
+    text = text.strip()
+    return word_tokenize(str(preprocess(text)))
+
+
 def remap_keys(data: dict):
     return [{'key': k, 'value': v} for k, v in data.items()]
 

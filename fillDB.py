@@ -59,6 +59,7 @@ def parse_from_index():
             dataset.append((str(i) + "/" + str(file_name[j]), file_title[j]))
 
 parse_from_index()
+
 # print("Length of dataset: ", len(dataset))
 
 N = len(dataset)
