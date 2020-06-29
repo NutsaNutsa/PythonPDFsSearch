@@ -69,10 +69,11 @@ class Runner(object):
             tuple_ = self.dataset[uid]
             location = tuple_[0]
             title = tuple_[1]
-            res.append({
-                "title": title,
-                "location": location
-            })
+            #res.append({
+                #"title": title,
+                #"location": location
+            #})
+            res.append(title)
         return res
 
     def cosine_similarity(self, k, query):
@@ -84,7 +85,7 @@ class Runner(object):
         query_vector = self.gen_vector(tokens)
         for d in self.D:
             d_cosines.append(cosine_sim(query_vector, d))
-
+        print(d_cosines)
         out = np.array(d_cosines).argsort()[-k:][::-1]
 
         return self.format_doc_custom(out)
@@ -163,3 +164,19 @@ class Runner(object):
             self.tf_idf[i] = tf_idf[i]
         self.reload_d()
         self.save_data()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

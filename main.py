@@ -22,15 +22,18 @@ def run_similarity():
     runner: Runner = app.config["runner"]
     return json.dumps(runner.cosine_similarity(count, query))
 
+import textract as textract
+
+import codecs
 
 @app.route("/parse_new_file", methods=["POST"])
 def update_data():
     file = request.files['file']
     data = file.read().decode()
-    title = request.args.get("title", file.filename)
-    runner: Runner = app.config["runner"]
-    runner.process_new_text(title, data)
-    return {}
+    #title = request.args.get("title", file.filename)
+    #runner: Runner = app.config["runner"]
+    #runner.process_new_text(title, data)
+    return data
 
 
 if __name__ == '__main__':
